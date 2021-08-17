@@ -12,7 +12,7 @@ def train():
     compute_loss = torch.nn.SmoothL1Loss(reduction='none').cuda()
     optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.9,
                 weight_decay=5e-4)
-    totalrounds = 10
+    totalrounds = 20
     adjust_learning_rate = optim.lr_scheduler.CosineAnnealingLR(optimizer, totalrounds, 0)
     loader = get_dataloader(64, 8)
     length = len(loader)
@@ -25,7 +25,7 @@ def train():
             masks = masks.cuda().unsqueeze(-1)
             # forward
             optimizer.zero_grad()
-            loss = (compute_loss(model(images.permute(0, 3, 1, 2)/255.).sigmoid(), targets.sigmoid()) * masks).sum() / masks.sum()
+            loss = (compute_loss(model(images.permute(0, 3, 1, 2)/255.)[0].sigmoid(), targets.sigmoid()) * masks).sum() / masks.sum()
             loss_amount = (loss_amount * iteration + loss.item()) / (iteration + 1)
             if iteration % 10 == 0:
                 s = ('[%s], %s' + '  Loss:%.4f, iter:%04d/%04d') % (

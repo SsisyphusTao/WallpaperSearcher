@@ -11,7 +11,7 @@ client = MongoClient('mongodb://127.0.0.1', 27017)
 db = client.Wallhaven
 papers = db.wallpaper
 vectors= db.tags_map
-dataset= db.dataset
+dataset= db.web_dataset
 
 #Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
@@ -81,14 +81,17 @@ def createDataset():
         tags.sort()
         ids, vecs = zip(*list(map(lambda x:tagMap[x],tags)))
 
-        r = requests.get(i['img_url'])
-        buffer = np.frombuffer(r.content,dtype=np.uint8)
-        img = cv.imdecode(buffer,cv.IMREAD_COLOR)
-        cv.imwrite(save_path%num, img)
+        # r = requests.get(i['img_url'])
+        # buffer = np.frombuffer(r.content,dtype=np.uint8)
+        # img = cv.imdecode(buffer,cv.IMREAD_COLOR)
+        # cv.imwrite(save_path%num, img)
 
-        record = {'img_index':num, 'img_path':save_path%num, 'embedding_ids': ids, 'embeddings':vecs}
+        record = {'img_index':num, 'img_path':save_path%num, 'embedding_ids': ids, 'embeddings':vecs, 'img_url':i['img_url']}
         dataset.insert_one(record)
-        num += 1                    
+        num += 1
+        print(num)
+        if num == 1159:
+            break
 
 if __name__ == '__main__':
-    tags2vectors()
+    createDataset()
