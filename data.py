@@ -154,31 +154,31 @@ class Wallpaper(Dataset):
     def __init__(self) -> None:
         super().__init__()
         client = MongoClient('mongodb://127.0.0.1', 27017)
-        self.data = list(client.Wallhaven.dataset.find())
-        self.aug = PhotometricDistort()
+        self.data = list(client.wallhaven_v2.wallpaper.find())
+        # self.aug = PhotometricDistort()
         random.shuffle(self.data)
 
     def __getitem__(self, index):
         record = self.data[index]
-        img = cv.imread(record['img_path'])
-        if random.randint(2):
-            img = cv.resize(img, (img.shape[1], int(img.shape[0]*random.uniform(0.9, 1.1))))
-        if random.randint(2):
-            img = cv.resize(img, (int(img.shape[1]*random.uniform(0.9, 1.1)), img.shape[0]))
+        img = cv.imread(record['train_path'])
+        # if random.randint(2):
+        #     img = cv.resize(img, (img.shape[1], int(img.shape[0]*random.uniform(0.9, 1.1))))
+        # if random.randint(2):
+        #     img = cv.resize(img, (int(img.shape[1]*random.uniform(0.9, 1.1)), img.shape[0]))
         if random.randint(2):
             cv.flip(img, 1)
         img = img.astype(np.float32)
-        h, w, _ = img.shape
-        if h>w:
-            d = (h-w)//2
-            img = cv.copyMakeBorder(img,0,0,d,d,cv.BORDER_CONSTANT,value=(0,0,0))
-        elif h<w:
-            d = (w-h)//2
-            img = cv.copyMakeBorder(img,d,d,0,0,cv.BORDER_CONSTANT,value=(0,0,0))
-        img = cv.resize(img, (512,512))
+        # h, w, _ = img.shape
+        # if h>w:
+        #     d = (h-w)//2
+        #     img = cv.copyMakeBorder(img,0,0,d,d,cv.BORDER_CONSTANT,value=(0,0,0))
+        # elif h<w:
+        #     d = (w-h)//2
+        #     img = cv.copyMakeBorder(img,d,d,0,0,cv.BORDER_CONSTANT,value=(0,0,0))
+        # img = cv.resize(img, (512,512))
 
         embeddings = record['embeddings']
-        embedding_ids = record['embedding_ids']
+        embedding_ids = record['embedding_index']
         labels = np.zeros((56, 1, 768), dtype=np.float32)
         masks = np.zeros((56), dtype=np.float32)
         for n, i in enumerate(embedding_ids):

@@ -31,8 +31,9 @@ class WallpaperSearcher(App):
         self.query = gui.Image('https://hdwallpaperim.com/wp-content/uploads/2017/09/16/57315-wallhaven-Adobe_Photoshop-748x499.jpg',width=750, height=750)
         self.best  = gui.Image('https://hdwallpaperim.com/wp-content/uploads/2017/09/16/57315-wallhaven-Adobe_Photoshop-748x499.jpg',width=750, height=750)
         self.best_score = gui.Label('Best')
+        self.query_url = gui.Label('Query')
 
-        query.append(gui.Label('Query'))
+        query.append(self.query_url)
         query.append(self.query)
         best.append(self.best_score)
         best.append(self.best)
@@ -53,6 +54,7 @@ class WallpaperSearcher(App):
             return
         record = self.outputs.find_one({'img_index':int(img_index)})
         self.query.set_image(record['img_url'])
+        self.query_url.set_text('Query URL: %s'%record['img_url'])
 
         record = self.outputs.find_one({'img_index':int(img_index)})
         query = torch.Tensor(record['img_embedding'])
@@ -63,9 +65,10 @@ class WallpaperSearcher(App):
             if score > best[0] and not score == 1:
                 best[0] = score
                 best[1] = i['img_index']
-        self.best.set_image(self.outputs.find_one({'img_index':int(best[1])})['img_url'])
-        self.best_score.set_text('Best: %.6f'%best[0])
+        img_url = self.outputs.find_one({'img_index':int(best[1])})['img_url']
+        self.best.set_image(img_url)
+        self.best_score.set_text('Best Match: %.6f  URL: %s'%(best[0], img_url))
 
 if __name__ == '__main__':
     # starts the web server
-    start(WallpaperSearcher)
+    start(WallpaperSearcher, address='0.0.0.0' ,port=9090)
