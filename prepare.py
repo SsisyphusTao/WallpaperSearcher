@@ -73,7 +73,7 @@ def tags2vectors():
         print(torch.Tensor(vecs).max())
         print(i['url'])
     print(len(tagDict))
-
+import numpy as np
 def updateDataset():
     tagDict = {}
 
@@ -83,8 +83,8 @@ def updateDataset():
         tags = list(i['tags'].values())
         tags.sort()
         ids, vecs = zip(*list(map(lambda x:tagDict[x],tags)))
-
-        papers.update_one({'uid':i['uid']}, {'$set':{'embedding_index': ids, 'embeddings':vecs}})
+        print(ids, np.array(vecs).shape)
+        # papers.update_one({'uid':i['uid']}, {'$set':{'embedding_index': ids, 'embeddings':vecs}})
 
 if __name__ == '__main__':
     updateDataset()

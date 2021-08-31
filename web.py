@@ -8,14 +8,16 @@ class WallpaperSearcher(App):
     def __init__(self, *args):
         super().__init__(*args)
         client = MongoClient('mongodb://127.0.0.1', 27017)
-        db = client.Wallhaven
+        db = client.wallhaven_v2
+        self.wallpaper = db.wallpaper
+        self.papers = list(self.wallpaper.find())
         self.outputs = db.outputs
 
     def main(self):
         background = gui.VBox()
         container = gui.VBox(width=200, height=100)
 
-        self.input = gui.TextInput(hint='Image ID(0-1159):')
+        self.input = gui.TextInput(hint='Image ID(0-10944):')
         self.bt = gui.Button('Search')
 
         # setting the listener for the onclick event of the button
@@ -52,11 +54,11 @@ class WallpaperSearcher(App):
         img_index = self.input.get_value()
         if img_index == '':
             return
-        record = self.outputs.find_one({'img_index':int(img_index)})
-        self.query.set_image(record['img_url'])
-        self.query_url.set_text('Query URL: %s'%record['img_url'])
+        record = self.papers[int(img_index)]
+        self.query.set_image(record['url'])
+        self.query_url.set_text('Query URL: %s'%record['url'])
 
-        record = self.outputs.find_one({'img_index':int(img_index)})
+        record = self.outputs.find_one({'uid':record['uid']})
         query = torch.Tensor(record['img_embedding'])
 
         best =[0, '']
@@ -64,8 +66,8 @@ class WallpaperSearcher(App):
             score = torch.nn.functional.cosine_similarity(query, torch.Tensor(i['img_embedding'])).mean()
             if score > best[0] and not score == 1:
                 best[0] = score
-                best[1] = i['img_index']
-        img_url = self.outputs.find_one({'img_index':int(best[1])})['img_url']
+                best[1] = i['uid']
+        img_url = self.wallpaper.find_one({'uid':best[1]})['url']
         self.best.set_image(img_url)
         self.best_score.set_text('Best Match: %.6f  URL: %s'%(best[0], img_url))
 

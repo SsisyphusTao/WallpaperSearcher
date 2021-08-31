@@ -1,9 +1,11 @@
-import re
+from re import escape
+import torch
 from torch.utils.data import Dataset, DataLoader
 from numpy import random
 import numpy as np
 import cv2 as cv
 from pymongo import MongoClient
+import os
 
 class SwapChannels(object):
     """Transforms a tensorized image by swapping the channels in the order
@@ -156,26 +158,30 @@ class Wallpaper(Dataset):
         client = MongoClient('mongodb://127.0.0.1', 27017)
         self.data = list(client.wallhaven_v2.wallpaper.find())
         # self.aug = PhotometricDistort()
-        random.shuffle(self.data)
+        # random.shuffle(self.data)
 
     def __getitem__(self, index):
         record = self.data[index]
-        img = cv.imread(record['train_path'])
-        # if random.randint(2):
-        #     img = cv.resize(img, (img.shape[1], int(img.shape[0]*random.uniform(0.9, 1.1))))
-        # if random.randint(2):
-        #     img = cv.resize(img, (int(img.shape[1]*random.uniform(0.9, 1.1)), img.shape[0]))
+        img = cv.imread(record['original_path'])
+        if random.randint(2):
+            img = cv.resize(img, (img.shape[1], int(img.shape[0]*random.uniform(0.9, 1.1))))
+        if random.randint(2):
+            img = cv.resize(img, (int(img.shape[1]*random.uniform(0.9, 1.1)), img.shape[0]))
         if random.randint(2):
             cv.flip(img, 1)
         img = img.astype(np.float32)
-        # h, w, _ = img.shape
-        # if h>w:
-        #     d = (h-w)//2
-        #     img = cv.copyMakeBorder(img,0,0,d,d,cv.BORDER_CONSTANT,value=(0,0,0))
-        # elif h<w:
-        #     d = (w-h)//2
-        #     img = cv.copyMakeBorder(img,d,d,0,0,cv.BORDER_CONSTANT,value=(0,0,0))
-        # img = cv.resize(img, (512,512))
+        h, w, _ = img.shape
+        if h>w:
+            d = int(h-w)
+            x = random.randint(d)
+            y = d-x
+            img = cv.copyMakeBorder(img,0,0,x,y,cv.BORDER_CONSTANT,value=(0,0,0))
+        elif h<w:
+            d = int(w-h)
+            x = random.randint(d)
+            y = d-x
+            img = cv.copyMakeBorder(img,x,y,0,0,cv.BORDER_CONSTANT,value=(0,0,0))
+        img = cv.resize(img, (512,512))
 
         embeddings = record['embeddings']
         embedding_ids = record['embedding_index']
@@ -183,7 +189,7 @@ class Wallpaper(Dataset):
         masks = np.zeros((56), dtype=np.float32)
         for n, i in enumerate(embedding_ids):
             labels[i] = embeddings[n]
-            masks[i] = 1
+            masks[i] += 1
 
         return img, labels, masks
 
@@ -191,8 +197,12 @@ class Wallpaper(Dataset):
         return len(self.data)
 
 
-def get_dataloader(batch_size, n):
-    return DataLoader(Wallpaper(), batch_size, True, num_workers=n, pin_memory=True)
+def get_dataloader(batch_size, local_rank):
+    dataset = Wallpaper()
+    batch_size = min(batch_size, len(dataset))
+    nw = min([os.cpu_count() // torch.distributed.get_world_size(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+    train_sampler = torch.utils.data.distributed.DistributedSampler(dataset) if local_rank != -1 else None
+    return DataLoader(dataset, batch_size, sampler=train_sampler, num_workers=nw, pin_memory=True)
 
 if __name__ == '__main__':
     loader = get_dataloader(2, 1)

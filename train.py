@@ -2,19 +2,24 @@ from resnet18 import get_model
 from data import get_dataloader
 import torch
 import torch.optim as optim
-
+from torch.nn.parallel import DistributedDataParallel as DDP
+import argparse
 import time
 
-def train():
-    torch.backends.cudnn.benchmark = True
+def train(local_rank):
+
     model = get_model().cuda()
     model.train()
-    compute_loss = torch.nn.SmoothL1Loss(reduction='none').cuda()
+    loss_fn = torch.nn.SmoothL1Loss(reduction='none').cuda()
+    if not local_rank == -1:
+        model =DDP(model, [local_rank])
+    compute_loss = lambda x, y : loss_fn(model(x)[0].tanh(), y.tanh())
+
     optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.9,
                 weight_decay=5e-4)
     total_epoch = 100
     adjust_learning_rate = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch, 0)
-    loader = get_dataloader(64, 8)
+    loader = get_dataloader(64, local_rank)
     length = len(loader)
     # create batch iterator
     for e in range(1, total_epoch+1):
@@ -25,9 +30,9 @@ def train():
             masks = masks.cuda().unsqueeze(-1)
             # forward
             optimizer.zero_grad()
-            loss = (compute_loss(model(images.permute(0, 3, 1, 2)/255.)[0].tanh(), targets) * masks).sum() / masks.sum()
+            loss = (compute_loss(images.permute(0, 3, 1, 2).contiguous()/255. , targets) * masks).sum() / masks.sum() * torch.distributed.get_world_size()
             loss_amount = (loss_amount * iteration + loss.item()) / (iteration + 1)
-            if iteration % 10 == 0:
+            if iteration % 10 == 0 and local_rank==0:
                 s = ('[%s], %s' + '  Loss:%.4f, iter:%04d/%04d') % (
                         time.asctime(time.localtime(time.time())), 'Epoch:[%g/%g]' % (e, total_epoch), loss_amount, iteration, length)
                 print(s)
@@ -35,8 +40,16 @@ def train():
 
             optimizer.step()
             adjust_learning_rate.step()
-        torch.save(model.state_dict(), 'checkpoints/v2_%depochs_%03d_%g.pth'%(total_epoch, e, loss_amount))
+        if local_rank == 0:
+            torch.save(model.module.state_dict(), 'checkpoints/v2_%depochs_%03d_%g.pth'%(total_epoch, e, loss_amount))
         
 
 if __name__ == '__main__':
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--local_rank', type=int, default=-1)
+    args = parser.parse_args()
+    torch.backends.cudnn.benchmark = True
+    if not args.local_rank == -1:
+        torch.cuda.set_device(args.local_rank)
+        torch.distributed.init_process_group(backend='nccl', init_method='env://')
+    train(args.local_rank)

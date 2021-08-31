@@ -27,4 +27,6 @@ for i in listdir('/home/chandler/dataset/html/'):
     
     record['original_path'] = '/home/chandler/dataset/origin/%s'%record['name']
     record['train_path'] = '/home/chandler/dataset/train/%s.png'%record['uid']
-    papers.insert_one(record)
+    print(record)
+    break
+    # papers.insert_one(record)
