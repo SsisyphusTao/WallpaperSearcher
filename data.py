@@ -156,7 +156,7 @@ class Wallpaper(Dataset):
     def __init__(self) -> None:
         super().__init__()
         client = MongoClient('mongodb://127.0.0.1', 27017)
-        self.data = list(client.wallhaven_v2.wallpaper.find())
+        self.data = list(client.wallhaven_v3.wallpaper.find())
         # self.aug = PhotometricDistort()
         # random.shuffle(self.data)
 
@@ -183,15 +183,8 @@ class Wallpaper(Dataset):
             img = cv.copyMakeBorder(img,x,y,0,0,cv.BORDER_CONSTANT,value=(0,0,0))
         img = cv.resize(img, (512,512))
 
-        embeddings = record['embeddings']
-        embedding_ids = record['embedding_index']
-        labels = np.zeros((56, 1, 768), dtype=np.float32)
-        masks = np.zeros((56), dtype=np.float32)
-        for n, i in enumerate(embedding_ids):
-            labels[i] = embeddings[n]
-            masks[i] += 1
-
-        return img, labels, masks
+        labels = np.array(record['label'], dtype=np.float32)
+        return img, labels
 
     def __len__(self):
         return len(self.data)

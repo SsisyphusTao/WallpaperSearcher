@@ -5,7 +5,7 @@ import torch
 import cv2 as cv
 
 client = MongoClient('mongodb://127.0.0.1', 27017)
-db = client.wallhaven_v2
+db = client.wallhaven_v3
 papers = db.wallpaper
 tag_dict= db.tag_dict
 
@@ -38,7 +38,7 @@ def transfer_tags():
     all_tags = []
 
     for i in papers.find():
-        tags, _ = zip(*i['tags'])
+        tags = list(i['tags'].keys())
         all_tags += tags
     all_tags = list(set(all_tags))
     all_tags.sort()
@@ -73,18 +73,33 @@ def tags2vectors():
         print(torch.Tensor(vecs).max())
         print(i['url'])
     print(len(tagDict))
-import numpy as np
+
 def updateDataset():
     tagDict = {}
 
     for n, i in enumerate(tag_dict.find()):
         tagDict[i['tags']]=[n, i['embedding']]
     for i in papers.find():
-        tags = list(i['tags'].values())
+        tags = list(i['tags'].keys())
         tags.sort()
         ids, vecs = zip(*list(map(lambda x:tagDict[x],tags)))
-        print(ids, np.array(vecs).shape)
-        # papers.update_one({'uid':i['uid']}, {'$set':{'embedding_index': ids, 'embeddings':vecs}})
+        # print(ids, np.array(vecs).shape)
+        papers.update_one({'uid':i['uid']}, {'$set':{'embedding_index': ids, 'embeddings':vecs}})
+
+def check():
+    for i in papers.find():
+        x = torch.Tensor(i['embeddings'])
+        a = x.max(0).values
+        b = x.min(0).values
+        c = x.mean(0)
+        # d = x.std(0)
+        # e = x.norm(dim=0)
+        f = x.median(0).values
+        # g = x.logsumexp(0)
+
+        x = torch.cat([a,b,c,f])
+        papers.update_one({'uid':i['uid']}, {'$set':{'label':x.numpy().tolist()}})
+        # print(len(x.numpy().tolist()))
 
 if __name__ == '__main__':
-    updateDataset()
+    check()
