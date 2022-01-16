@@ -155,14 +155,14 @@ class PhotometricDistort(object):
 class Wallpaper(Dataset):
     def __init__(self) -> None:
         super().__init__()
-        client = MongoClient('mongodb://127.0.0.1', 27017)
-        self.data = list(client.wallhaven_v3.wallpaper.find())
+        client = MongoClient('mongodb://172.17.0.1', 27017)
+        self.data = list(client.wallpaper.trainset.find())
         # self.aug = PhotometricDistort()
         # random.shuffle(self.data)
 
     def __getitem__(self, index):
         record = self.data[index]
-        img = cv.imread(record['original_path'])
+        img = cv.imread(record['path'])
         if random.randint(2):
             img = cv.resize(img, (img.shape[1], int(img.shape[0]*random.uniform(0.9, 1.1))))
         if random.randint(2):
@@ -195,7 +195,7 @@ def get_dataloader(batch_size, local_rank):
     batch_size = min(batch_size, len(dataset))
     nw = min([os.cpu_count() // torch.distributed.get_world_size(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     train_sampler = torch.utils.data.distributed.DistributedSampler(dataset) if local_rank != -1 else None
-    return DataLoader(dataset, batch_size, sampler=train_sampler, num_workers=nw, pin_memory=True)
+    return DataLoader(dataset, batch_size, sampler=train_sampler, num_workers=2, pin_memory=True)
 
 if __name__ == '__main__':
     loader = get_dataloader(2, 1)

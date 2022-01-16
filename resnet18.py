@@ -162,7 +162,7 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.mfc = nn.Linear(16*16 * block.expansion, num_classes)
-        self.trick=conv1x1(512, 768)
+        self.trick=conv1x1(512, 1024)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -231,11 +231,11 @@ class ResNet(nn.Module):
 
 def get_model():
     resnet18 = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=4)
-    resnet18.load_state_dict(torch.load('/home/chandler/resnet18-5c106cde.pth'), strict=False)
+    resnet18.load_state_dict(torch.load('/root/.cache/torch/hub/checkpoints/resnet18-f37072fd.pth'), strict=False)
     return resnet18
 
 if __name__ == '__main__':
     resnet18 = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=768)
-    resnet18.load_state_dict(torch.load('/home/chandler/resnet18-5c106cde.pth'), strict=False)
+    resnet18.load_state_dict(torch.load('/root/.cache/torch/hub/checkpoints/resnet18-f37072fd.pth'), strict=False)
 
     print(resnet18(torch.randn(1,3,512,512)).dtype)

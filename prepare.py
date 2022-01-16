@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch
 import cv2 as cv
 
-client = MongoClient('mongodb://127.0.0.1', 27017)
+client = MongoClient('mongodb://172.17.0.1', 27017)
 db = client.wallhaven_v3
 papers = db.wallpaper
 tag_dict= db.tag_dict

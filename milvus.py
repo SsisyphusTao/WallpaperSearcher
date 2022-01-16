@@ -24,7 +24,7 @@ def createBaseCollection():
 def insertData():
     import numpy as np
     import json
-    client = MongoClient('mongodb://127.0.0.1', 27017)
+    client = MongoClient('mongodb://172.17.0.1', 27017)
     db = client.wallhaven_v3
     outputs = db.outputs
     dim = 768
@@ -60,7 +60,7 @@ def dropData():
     collection.drop()
 
 def query():
-    client = MongoClient('mongodb://127.0.0.1', 27017)
+    client = MongoClient('mongodb://172.17.0.1', 27017)
     db = client.wallhaven_v3
     outputs = db.outputs
     connections.connect()

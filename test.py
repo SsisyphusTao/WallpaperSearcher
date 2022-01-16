@@ -9,7 +9,7 @@ model = get_model().cuda()
 model.load_state_dict(torch.load('/home/chandler/towhee/checkpoints/v3_10epochs_010_0.0862574.pth'))
 model.eval()
 
-client = MongoClient('mongodb://127.0.0.1', 27017)
+client = MongoClient('mongodb://172.17.0.1', 27017)
 db = client.wallhaven_v3
 papers = db.wallpaper
 outputs = db.outputs

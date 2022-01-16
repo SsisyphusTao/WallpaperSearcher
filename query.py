@@ -8,7 +8,7 @@ import time
 import json
 from pymilvus import connections, Collection
 
-client = MongoClient('mongodb://127.0.0.1', 27017)
+client = MongoClient('mongodb://172.17.0.1', 27017)
 db = client.wallhaven_v3
 papers = db.wallpaper
 outputs = db.outputs

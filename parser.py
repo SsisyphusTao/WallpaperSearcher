@@ -2,7 +2,7 @@ import bs4
 from os import listdir
 from pymongo import MongoClient
 
-client = MongoClient('mongodb://127.0.0.1', 27017)
+client = MongoClient('mongodb://172.17.0.1', 27017)
 db = client.wallhaven_v2
 papers = db.wallpaper
 
